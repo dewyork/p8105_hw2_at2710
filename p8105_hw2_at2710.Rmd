@@ -1,7 +1,7 @@
 ---
-title: "Homework 1"
+title: "Homework 2"
 author: "Anusorn Thanataveerat"
-date: '2018-09-13'
+date: '2018-09-25'
 output:
   html_document:
     toc: true
@@ -11,100 +11,40 @@ output:
 
 # Problem 1
 
-Create a data frame comprised of:
+Read and clean the data; retain line, station, name, station latitude / longitude, routes served, entry, vending, entrance type, and ADA compliance. Convert the entry variable from character (YES vs NO) to a logical variable
 
-* A random sample of size 10 from a uniform[0, 5] distribution
-* A logical vector indicating whether elements of the sample are greater than 2
-* A (length-10) character vector
-* A (length-10) factor vector
 ```{r Load_Package, include = FALSE}
 library(tidyverse)
 library(gridExtra)
+library(janitor)
 ```
-```{r Create_tbl, echo = TRUE}
-set.seed(345)
-
-sample.size <- 10
-
-df <- tibble(
-x = runif(sample.size, 0, 5),
-x_GT_2 = x > 2,
-char_var = as.character(c(1:10)),
-fct_var = as.factor(c(1, 1, 2, 3, 1, 1, 7, 100, 500, 5))
-)
-
-print(df)
-```
-
-Try to take the mean of each variable in your dataframe. What works and what doesn’t? Why?
-```{r mean, echo = TRUE}
-df %>% summarise_all(funs(mean))
-```
-**Answer**: the mean function only works with numeric and logic type data. With logic type data, it treats `TRUE` to 1 and `FALSE` to 0 before applying the mean function. And to be clear, it doesn't work with factor and character type data which is understandable given how subjective it must be to start assigning numbers to these types of data.
-
-In some cases, you can explicitly convert variables from one type to another. Write a code chunk that applies the as.numeric function to the logical, character, and factor variables (please show this chunk but not the output). What happens? 
-```{r convert_type, echo = TRUE}
-df_convert <- df %>% mutate(
-  x_GT_2 = as.numeric(x_GT_2),
-  char_var = as.numeric(char_var),
-  fct_var = as.numeric(fct_var)
+```{r problem_1, echo = TRUE}
+original_dat <-
+  as.tibble(
+  read.csv(
+  'http://p8105.com/data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv'
   )
+  ) %>% clean_names()
+  
+  subset_dat <-
+  original_dat %>% select(line:entry, vending, ada, ada_notes) %>%
+  mutate(entry = ifelse(entry == 'YES', TRUE, FALSE))
+  dedup_subset_dat <-
+  subset_dat %>% distinct(line, station_name, .keep_all = TRUE)
 ```
+
+Write a short paragraph about this dataset – explain briefly what variables the dataset contains, describe your data cleaning steps so far, and give the dimension (rows x columns) of the resulting dataset. Are these data tidy?
+
+**Answer**:Once downloaded, the data set consists of `r ncol(original_dat)` variables and `r nrow(original_dat)` observations. We further included only the variables as suggested and the number of variables came down to `r ncol(subset_dat)`. At this point, we noticed rows with identical input of a combination of *line* and *station name* thus we de-duplicated based on those two variables and ended up with **`r nrow(dedup_subset_dat)`** unique stations in the NYC subway system. There are `r sum(dedup_subset_dat$ada)` stations (`r round(100* sum(dedup_subset_dat$ada)/nrow(dedup_subset_dat),2)` %) which are ADA compliant. Also,
+What proportion of station entrances / exits without vending allow entrance?
+
+
+
+
 **Answer**: The character and factor variables can be converted to numeric variables.
 Again, it converts `TRUE` to 1 and `FALSE` to 0 for logic variable. For character variable, the numeric values take values from its 'face' value. For factor variable, the results are the levels of the factor. For example in this case there are 7 levels and the with number *500* is treated as the highest level, therefore it is recoded as 7 while *7* is the fifth highest level and is recoded as 5.
 
 In a second code chunk, convert your character variable from character to factor to numeric; similarly, convert your factor variable from factor to character to numeric. What happens?
-```{r convert_type_V2, echo = TRUE, eval = FALSE}
-df_new_convert <-
-  df %>% mutate(char_var = as.numeric(as.factor(char_var)),
-  fct_var = as.numeric(as.character(fct_var)))
-```
-**Answer**: When the character is converted to factor, the output doesn't change but the levels are created based on the input character. So we can see that the number 10 is at level 2 from the bottom (since 1 comes before 2, 3 and so on) and that explains why it is eventually coded as 2 when converted to numeric at the end. For the other example, the final product keeps the 'face value' of the variable, ignoring the level information (which is due to the function as.character()).
-
-# Problem 2
-
-This problem focuses on plotting and the use of inline R code.
-
-Create a data frame comprised of:
-
-* x: a random sample of size 1000 from a standard Normal distribution
-* y: a random sample of size 1000 from a standard Normal distribution
-* A logical vector indicating whether the x + y > 0
-* A numeric vector created by coercing the above logical vector
-* A factor vector created by coercing the above logical vector
-```{r plot_create, echo = TRUE}
-set.seed(345)
-
-sample.size <- 1000
-
-df <- tibble(
-x = rnorm(sample.size),
-y = rnorm(sample.size),
-xy_GT_0 = x + y > 0,
-xy_GT_0_bin = as.numeric(xy_GT_0),
-xy_GT_0_fct = as.factor(xy_GT_0)
-)
-```
-
-Write a short description of your vector using inline R code, including: * the size of the dataset * the mean and median of x * the proportion of cases for which the logical vector is TRUE
-
-**Answer**:This data set consists of `r sample.size` observations with 2 continuous variables (_x_,_y_) with mean (`r round(mean(df$x), 3)`,`r round(mean(df$y), 3)`) and median (`r round(median(df$x), 3)`, `r round(median(df$y), 3)`). There are `r sum(df$xy_GT_0)/10`% of the observations whose summation of _x_ and _y_ is greater than zero. 
-
-Make a scatterplot of y vs x; color points using the logical variable. Make a second and third scatterplot that color points using the numeric and factor variables, respectively, and comment on the color scales.
-```{r scatterplot, echo = TRUE}
-color_logic <- ggplot(data = df) + geom_point(aes(x = x, y = y, color = xy_GT_0))
-color_numeric <- ggplot(data = df) + geom_point(aes(x = x, y = y, color = xy_GT_0_bin))
-color_factor <- ggplot(data = df) + geom_point(aes(x = x, y = y, color = xy_GT_0_fct))
-grid.arrange(color_logic, color_numeric, color_factor)
-```
-**Answer**The color scales of the ones using logical and factor variables are the same which compose of two distinct colors. They are treated as discrete variables while for the numeric variable you will see a color gradient ranging from 0 (minimum) to 1 (maximum) which each point is allowed to be coded as but we don't see the variaion here since we only have 2 distinct values (0 and 1). In short, the numeric variable is treated as continuous variable. 
-
-Export your first scatterplot to your project directory using ggsave.
-```{r, echo = TRUE}
-png("Scatterplot_1.png")
-print(color_logic)
-dev.off()
-```
 
 
 
