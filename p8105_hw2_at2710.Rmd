@@ -106,21 +106,45 @@ The total precipitation in 2017 (up to month Auguest) is `r sum(Precip_2017$Tota
 
 # Problem 3
 ```{r load_brfss, message = FALSE}
-health_overall <- data("brfss_smart2010") %>% filter_(str_detect(Topic, "Overall Health"))
-# str_detect(trains, "A"))
+data("brfss_smart2010")
+health_overall <-
+brfss_smart2010 %>% clean_names() %>%  filter(str_detect(topic, c("Overall Health"))) %>%
+select(-c(
+class:question,
+sample_size,
+confidence_limit_low:geo_location)) %>% mutate(resposne_binary = ifelse(response %in% c('Excellent','')))
+
+health_overall_wide_fmt <- health_overall %>% spread(response, data_value) %>% rename(Very_Good = `Very good`) %>% 
+  mutate(excellent_Vgood_prop = (Excellent + Very_Good)/(Excellent  + Fair +  Good +  Poor + Very_Good)) %>% 
+  select(year, state = locationabbr, county = locationdesc, Excellent, Very_Good, Good, Fair, Poor, excellent_Vgood_prop)
 ```
 
-For this question:
+How many unique locations are included in the dataset? 
 
-format the data to use appropriate variable names;
-focus on the “Overall Health” topic
-exclude variables for class, topic, question, sample size, and everything from lower confidence limit to GeoLocation
-structure data so that responses (excellent to poor) are variables taking the value of Data_value
-create a new variable showing the proportion of responses that were “Excellent” or “Very Good”
-Using this dataset, do or answer the following:
+**Answer**`r length(unique(health_overall_wide_fmt$county))`
 
-How many unique locations are included in the dataset? Is every state represented? What state is observed the most?
+Is every state represented? What state is observed the most?
+
+**Answer** Data comes from `r length(unique(health_overall_wide_fmt$state))` states with `r names(sort(table(health_overall_wide_fmt$state), decreasing = TRUE)[1])` being observed the most (`r sort(table(health_overall_wide_fmt$state), decreasing = TRUE)[1]` times).
+
 In 2002, what is the median of the “Excellent” response value?
-Make a histogram of “Excellent” response values in the year 2002.
-Make a scatterplot showing the proportion of “Excellent” response values in New York County and Queens County (both in NY State) in each year from 2002 to 2010.
 
+**Answer** `r health_overall_wide_fmt %>% filter(year == 2002) %>% summarise(excellent_median = median(Excellent, na.rm = TRUE))`
+
+Make a histogram of “Excellent” response values in the year 2002.
+
+```{r histogram, message = FALSE}
+health_overall_wide_fmt %>% filter(year == 2002) %>% ggplot(aes(x = Excellent)) + geom_histogram()
+```
+
+Make a scatterplot showing the proportion of “Excellent” response values in New York County and Queens County (both in NY State) in each year from 2002 to 2010.
+```{r scatterplot, message = FALSE}
+# NY_dat <- health_overall_wide_fmt %>% filter(locationdesc %in% c('NY - Queens County', 'NY - New York County')) %>% 
+#   ggplot
+health_overall_wide_fmt %>% filter(county %in% c('NY - Queens County', 'NY - New York County')) %>% 
+  mutate(excellent_prop = Excellent/(Excellent  + Fair +  Good +  Poor + Very_Good)) %>% 
+  ggplot(aes(x = year, y = excellent_prop, color = county)) + geom_jitter() + 
+  ylab("Proportion 'Excellent' response")
+```
+
+ps. It does seem like New YOrk county dwellers tend to rate their health higher than those who live in Queens!
