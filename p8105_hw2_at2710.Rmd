@@ -18,6 +18,7 @@ library(tidyverse)
 library(gridExtra)
 library(readxl)
 library(knitr)
+library(p8105.datasets)
 library(janitor)
 library(lubridate)
 ```
@@ -38,7 +39,7 @@ Write a short paragraph about this dataset – explain briefly what variables th
 
 What proportion of station entrances / exits without vending allow entrance?
 
-**Answer**: Of all the `r nrow(original_dat)` entrances, `r sum(original_dat$entry == 'YES')` allows for entry and `r sum(original_dat$entry == 'YES' & original_dat$vending == 'NO')` (`r sum(original_dat$entry == 'YES' & original_dat$vending == 'NO')*100/sum(original_dat$entry == 'YES')`%) of that do not have vending machine stationed at the entrance.  
+**Answer**: Of all the `r nrow(original_dat)` entrances, `r sum(original_dat$vending == 'NO')` have no vending machine but `r sum(original_dat$entry == 'YES' & original_dat$vending == 'NO')` (`r round(sum(original_dat$entry == 'YES' & original_dat$vending == 'NO')*100/sum(original_dat$vending == 'NO'),2)`%) of that do allow for entry.  
 
 Reformat data so that route number and route name are distinct variables. How many distinct stations serve the A train? How many are ADA compliant?
 
@@ -52,28 +53,74 @@ reformat_dedup_subset <- dedup_subset_dat %>% mutate_if(is.integer, as.character
 
 # Problem 2
 ```{r problem_2}
-Trash_Wheel <- readxl::read_excel("./Data/HealthyHarborWaterWheelTotals2017-9-26.xlsx",
-        sheet = 'Mr. Trash Wheel', range = cell_cols("A:N")) %>% clean_names() %>% filter(!is.na(dumpster) & !is.na(date)) %>%
-  mutate(sports_balls = as.integer(round(sports_balls,0)),
-         year = lubridate::year(date))
+Trash_Wheel <-
+  readxl::read_excel(
+  "./Data/HealthyHarborWaterWheelTotals2017-9-26.xlsx",
+  sheet = 'Mr. Trash Wheel',
+  range = cell_cols("A:N")
+  ) %>% clean_names() %>% filter(!is.na(dumpster) & !is.na(date)) %>%
+  mutate(sports_balls = as.integer(round(sports_balls, 0)),
+  year = lubridate::year(date))
 
-Precip_2017 <- readxl::read_excel("./Data/HealthyHarborWaterWheelTotals2017-9-26.xlsx",
-        sheet = '2017 Precipitation', range = "A2:B14") %>% filter(!is.na(Total)) %>% mutate(year = 2017)
-
-Precip_2016 <- readxl::read_excel("./Data/HealthyHarborWaterWheelTotals2017-9-26.xlsx",
-        sheet = '2016 Precipitation', range = "A2:B14") %>% mutate(year = 2016)
-Precip_combine <- bind_rows(Precip_2016, Precip_2017) %>% mutate(Month = month.name[Month]) %>% 
+Trash_Wheel_new <- Trash_Wheel %>% filter(year > 2015)
+  Precip_2017 <-
+  readxl::read_excel(
+  "./Data/HealthyHarborWaterWheelTotals2017-9-26.xlsx",
+  sheet = '2017 Precipitation',
+  range = "A2:B14"
+  ) %>% filter(!is.na(Total)) %>% mutate(year = 2017)
+  
+  Precip_2016 <-
+  readxl::read_excel(
+  "./Data/HealthyHarborWaterWheelTotals2017-9-26.xlsx",
+  sheet = '2016 Precipitation',
+  range = "A2:B14"
+  ) %>% mutate(year = 2016)
+  Precip_combine <-
+  bind_rows(Precip_2016, Precip_2017) %>% mutate(Month = month.name[Month]) %>%
   select(month = Month, year, precip = Total)
 
 ```
 
 Write a paragraph about these data; you are encouraged to use inline R. Be sure to note the number of observations in both resulting datasets, and give examples of key variables. For available data, what was the total precipitation in 2017? What was the median number of sports balls in a dumpster in 2016?
-**Answer**: The Trash wheel data set contains the information on the types and amount of garbage/waste collected in the dumpster filled from the Trash wheel from May-2014 to August-2017. 
+
+**Answer**: The Trash wheel data set contains the information on the types and amount of garbage/waste collected in each dumpster filled from the Trash wheel from May-2014 to August-2017. it consists of `r nrow(Trash_Wheel)` observations with `r ncol(Trash_Wheel)` variables. The precipitaton data consists of monthly precipitation level from 2016 to August 2017 (`r nrow(Precip_combine)` rows and `r ncol(Precip_combine)` variables) 
+```{r table_top_ten_dumpsters, message = FALSE}
+# Trash_Wheel %>% group_by(month, year) %>% tally() %>% ungroup() %>% arrange(desc(n)) %>% top_n(10) %>% 
+#   rename(number_dumpster = n) %>% kable()
+```
+
+Since we only use precipitation data from 2016 to August/2017, we restricted the data in the Trash wheel to reflect the same timeframe. Now the new Trash wheel data consists of `r nrow(Trash_Wheel_new)` observations. If we look at the top five months which have the highest number of dumpsters,  
 ```{r message = FALSE}
-Trash_Wheel %>% group_by(month, year) %>% tally() %>% ungroup() %>% arrange(desc(n)) %>% top_n(10) %>% 
+Trash_Wheel %>% group_by(month) %>% tally() %>% ungroup() %>% arrange(desc(n)) %>% top_n(5) %>% 
   rename(number_dumpster = n) %>% kable()
 ```
 
-The top ten months which have the highest number of dumpsters are almost during the hurricane season (except the month of December 2015). This information is in agreement with what was given in the assignment which states "the amount of trash the device receives is highly dependent on rainfall".
+These months are between April and August which is in agreement with what was given in the assignment which states "the amount of trash the device receives is highly dependent on rainfall". However, when we look at the top five months with highest precipitation level during 2016-2017, 
+```{r table_top_ten_precip, message = FALSE}
+Precip_combine %>% group_by(month) %>% tally(precip) %>% ungroup() %>%  arrange(desc(n)) %>% top_n(5) %>%   rename(precip_level = n) %>% kable()
+```
 
+we found that February and March have high precipitation level but those didn't translate into a larger amount of garbage. This implies that the level of precipitation doesn't solely explain the amount of garbage; there must be other explanatory variables which contribute to the outcome.
+The total precipitation in 2017 (up to month Auguest) is `r sum(Precip_2017$Total)`. and the median number of sports balls in a dumpster in 2016 is `r Trash_Wheel_new %>% filter(year == 2016) %>% summarise(sports_balls_median = median(sports_balls))`
+
+# Problem 3
+```{r load_brfss, message = FALSE}
+health_overall <- data("brfss_smart2010") %>% filter_(str_detect(Topic, "Overall Health"))
+# str_detect(trains, "A"))
+```
+
+For this question:
+
+format the data to use appropriate variable names;
+focus on the “Overall Health” topic
+exclude variables for class, topic, question, sample size, and everything from lower confidence limit to GeoLocation
+structure data so that responses (excellent to poor) are variables taking the value of Data_value
+create a new variable showing the proportion of responses that were “Excellent” or “Very Good”
+Using this dataset, do or answer the following:
+
+How many unique locations are included in the dataset? Is every state represented? What state is observed the most?
+In 2002, what is the median of the “Excellent” response value?
+Make a histogram of “Excellent” response values in the year 2002.
+Make a scatterplot showing the proportion of “Excellent” response values in New York County and Queens County (both in NY State) in each year from 2002 to 2010.
 

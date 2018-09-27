@@ -258,7 +258,7 @@ div.tocify {
 <p>Write a short paragraph about this dataset – explain briefly what variables the dataset contains, describe your data cleaning steps so far, and give the dimension (rows x columns) of the resulting dataset. Are these data tidy?</p>
 <p><strong>Answer</strong>:Once downloaded, the data set consists of 32 variables and 1868 observations. These are information on all the entrace to all the subway stations in NYC so each station could have multiple rows of information depending on the number of entrance. We further included only the variables as suggested and the number of variables came down to 20. At this point, we noticed rows with identical input of a combination of <em>line</em> and <em>station name</em> thus we de-duplicated based on those two variables and ended up with <strong>465</strong> unique stations in the NYC subway system. There are 84 stations (18.06 %) which are ADA compliant.</p>
 <p>What proportion of station entrances / exits without vending allow entrance?</p>
-<p><strong>Answer</strong>: Of all the 1868 entrances, 1753 allows for entry and 69 (3.9361095%) of that do not have vending machine stationed at the entrance.</p>
+<p><strong>Answer</strong>: Of all the 1868 entrances, 183 have no vending machine but 69 (37.7%) of that do allow for entry.</p>
 <p>Reformat data so that route number and route name are distinct variables. How many distinct stations serve the A train? How many are ADA compliant?</p>
 <pre class="r"><code>reformat_dedup_subset &lt;- dedup_subset_dat %&gt;% mutate_if(is.integer, as.character) %&gt;%   mutate(trains = paste(route1, route2, route3, route4, route5, route6,
   route7, route8, route9, route10,route11)) %&gt;% mutate(trains = 
@@ -267,87 +267,101 @@ div.tocify {
 </div>
 <div id="problem-2" class="section level1">
 <h1>Problem 2</h1>
-<pre class="r"><code>Trash_Wheel &lt;- readxl::read_excel(&quot;./Data/HealthyHarborWaterWheelTotals2017-9-26.xlsx&quot;,
-        sheet = 'Mr. Trash Wheel', range = cell_cols(&quot;A:N&quot;)) %&gt;% clean_names() %&gt;% filter(!is.na(dumpster) &amp; !is.na(date)) %&gt;%
-  mutate(sports_balls = as.integer(round(sports_balls,0)),
-         year = lubridate::year(date))
+<pre class="r"><code>Trash_Wheel &lt;-
+  readxl::read_excel(
+  &quot;./Data/HealthyHarborWaterWheelTotals2017-9-26.xlsx&quot;,
+  sheet = 'Mr. Trash Wheel',
+  range = cell_cols(&quot;A:N&quot;)
+  ) %&gt;% clean_names() %&gt;% filter(!is.na(dumpster) &amp; !is.na(date)) %&gt;%
+  mutate(sports_balls = as.integer(round(sports_balls, 0)),
+  year = lubridate::year(date))
 
-Precip_2017 &lt;- readxl::read_excel(&quot;./Data/HealthyHarborWaterWheelTotals2017-9-26.xlsx&quot;,
-        sheet = '2017 Precipitation', range = &quot;A2:B14&quot;) %&gt;% filter(!is.na(Total)) %&gt;% mutate(year = 2017)
-
-Precip_2016 &lt;- readxl::read_excel(&quot;./Data/HealthyHarborWaterWheelTotals2017-9-26.xlsx&quot;,
-        sheet = '2016 Precipitation', range = &quot;A2:B14&quot;) %&gt;% mutate(year = 2016)
-Precip_combine &lt;- bind_rows(Precip_2016, Precip_2017) %&gt;% mutate(Month = month.name[Month]) %&gt;% 
+Trash_Wheel_new &lt;- Trash_Wheel %&gt;% filter(year &gt; 2015)
+  Precip_2017 &lt;-
+  readxl::read_excel(
+  &quot;./Data/HealthyHarborWaterWheelTotals2017-9-26.xlsx&quot;,
+  sheet = '2017 Precipitation',
+  range = &quot;A2:B14&quot;
+  ) %&gt;% filter(!is.na(Total)) %&gt;% mutate(year = 2017)
+  
+  Precip_2016 &lt;-
+  readxl::read_excel(
+  &quot;./Data/HealthyHarborWaterWheelTotals2017-9-26.xlsx&quot;,
+  sheet = '2016 Precipitation',
+  range = &quot;A2:B14&quot;
+  ) %&gt;% mutate(year = 2016)
+  Precip_combine &lt;-
+  bind_rows(Precip_2016, Precip_2017) %&gt;% mutate(Month = month.name[Month]) %&gt;%
   select(month = Month, year, precip = Total)</code></pre>
-<p>Write a paragraph about these data; you are encouraged to use inline R. Be sure to note the number of observations in both resulting datasets, and give examples of key variables. For available data, what was the total precipitation in 2017? What was the median number of sports balls in a dumpster in 2016? <strong>Answer</strong>: The Trash wheel data set contains the information on the types and amount of garbage/waste collected in the dumpster filled from the Trash wheel from May-2014 to August-2017.</p>
-<pre class="r"><code>Trash_Wheel %&gt;% group_by(month, year) %&gt;% tally() %&gt;% ungroup() %&gt;% arrange(desc(n)) %&gt;% top_n(10) %&gt;% 
+<p>Write a paragraph about these data; you are encouraged to use inline R. Be sure to note the number of observations in both resulting datasets, and give examples of key variables. For available data, what was the total precipitation in 2017? What was the median number of sports balls in a dumpster in 2016? <strong>Answer</strong>: The Trash wheel data set contains the information on the types and amount of garbage/waste collected in each dumpster filled from the Trash wheel from May-2014 to August-2017. it consists of 215 observations with 14 variables. The precipitaton data consists of monthly precipitation level from 2016 to August 2017 (20 rows and 3 variables)</p>
+<pre class="r"><code># Trash_Wheel %&gt;% group_by(month, year) %&gt;% tally() %&gt;% ungroup() %&gt;% arrange(desc(n)) %&gt;% top_n(10) %&gt;% 
+#   rename(number_dumpster = n) %&gt;% kable()</code></pre>
+<p>Since we only use precipitation data from 2016 to August/2017, we restricted the data in the Trash wheel to reflect the same timeframe. Now the new Trash wheel data consists of 100 observations. If we look at the top five months which have the highest number of dumpsters,</p>
+<pre class="r"><code>Trash_Wheel %&gt;% group_by(month) %&gt;% tally() %&gt;% ungroup() %&gt;% arrange(desc(n)) %&gt;% top_n(5) %&gt;% 
   rename(number_dumpster = n) %&gt;% kable()</code></pre>
 <table>
 <thead>
 <tr class="header">
 <th align="left">month</th>
-<th align="right">year</th>
 <th align="right">number_dumpster</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td align="left">June</td>
-<td align="right">2015</td>
-<td align="right">21</td>
+<td align="right">39</td>
 </tr>
 <tr class="even">
 <td align="left">April</td>
-<td align="right">2017</td>
-<td align="right">18</td>
+<td align="right">31</td>
 </tr>
 <tr class="odd">
-<td align="left">June</td>
-<td align="right">2014</td>
-<td align="right">9</td>
+<td align="left">July</td>
+<td align="right">26</td>
 </tr>
 <tr class="even">
-<td align="left">April</td>
-<td align="right">2015</td>
-<td align="right">8</td>
+<td align="left">May</td>
+<td align="right">25</td>
 </tr>
 <tr class="odd">
 <td align="left">August</td>
-<td align="right">2017</td>
-<td align="right">8</td>
-</tr>
-<tr class="even">
-<td align="left">December</td>
-<td align="right">2015</td>
-<td align="right">8</td>
-</tr>
-<tr class="odd">
-<td align="left">July</td>
-<td align="right">2016</td>
-<td align="right">8</td>
-</tr>
-<tr class="even">
-<td align="left">May</td>
-<td align="right">2014</td>
-<td align="right">8</td>
-</tr>
-<tr class="odd">
-<td align="left">May</td>
-<td align="right">2017</td>
-<td align="right">8</td>
-</tr>
-<tr class="even">
-<td align="left">July</td>
-<td align="right">2014</td>
-<td align="right">7</td>
-</tr>
-<tr class="odd">
-<td align="left">The top ten</td>
-<td align="right">months</td>
-<td align="right">which have the highest number of dumpsters are almost during the summertime (except the month of December 2015) which</td>
+<td align="right">24</td>
 </tr>
 </tbody>
 </table>
+<p>These months are between April and August which is in agreement with what was given in the assignment which states “the amount of trash the device receives is highly dependent on rainfall”. However, when we look at the top five months with highest precipitation level during 2016-2017,</p>
+<pre class="r"><code>Precip_combine %&gt;% group_by(month) %&gt;% tally(precip) %&gt;% ungroup() %&gt;%  arrange(desc(n)) %&gt;% top_n(5) %&gt;%   rename(precip_level = n) %&gt;% kable()</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">month</th>
+<th align="right">precip_level</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">July</td>
+<td align="right">13.18</td>
+</tr>
+<tr class="even">
+<td align="left">May</td>
+<td align="right">10.83</td>
+</tr>
+<tr class="odd">
+<td align="left">August</td>
+<td align="right">8.40</td>
+</tr>
+<tr class="even">
+<td align="left">February</td>
+<td align="right">6.78</td>
+</tr>
+<tr class="odd">
+<td align="left">March</td>
+<td align="right">5.81</td>
+</tr>
+</tbody>
+</table>
+<p>we found that February and March have high precipitation level but those didn’t translate into a larger amount of garbage. This implies that the level of precipitation doesn’t solely explain the amount of garbage; there must be other explanatory variables which contribute to the outcome. The total precipitation in 2017 (up to month Auguest) is 29.93. and the median number of sports balls in a dumpster in 2016 is 26</p>
 </div>
 
 
