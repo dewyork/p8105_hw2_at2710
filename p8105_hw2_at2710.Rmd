@@ -17,7 +17,9 @@ Read and clean the data; retain line, station, name, station latitude / longitud
 library(tidyverse)
 library(gridExtra)
 library(readxl)
+library(knitr)
 library(janitor)
+library(lubridate)
 ```
 ```{r problem_1, message = FALSE}
 original_dat <-
@@ -51,19 +53,27 @@ reformat_dedup_subset <- dedup_subset_dat %>% mutate_if(is.integer, as.character
 # Problem 2
 ```{r problem_2}
 Trash_Wheel <- readxl::read_excel("./Data/HealthyHarborWaterWheelTotals2017-9-26.xlsx",
-        sheet = 'Mr. Trash Wheel', range = cell_cols("A:N")) %>% clean_names() %>% filter(!is.na(dumpster)) %>%
-  mutate(sports_balls = as.integer(round(sports_balls,0)))
+        sheet = 'Mr. Trash Wheel', range = cell_cols("A:N")) %>% clean_names() %>% filter(!is.na(dumpster) & !is.na(date)) %>%
+  mutate(sports_balls = as.integer(round(sports_balls,0)),
+         year = lubridate::year(date))
 
 Precip_2017 <- readxl::read_excel("./Data/HealthyHarborWaterWheelTotals2017-9-26.xlsx",
         sheet = '2017 Precipitation', range = "A2:B14") %>% filter(!is.na(Total)) %>% mutate(year = 2017)
 
 Precip_2016 <- readxl::read_excel("./Data/HealthyHarborWaterWheelTotals2017-9-26.xlsx",
         sheet = '2016 Precipitation', range = "A2:B14") %>% mutate(year = 2016)
-Precip_combine <- bind_rows(Precip_2016, Precip_2017) %>% mutate(Month = month.name[Month])
+Precip_combine <- bind_rows(Precip_2016, Precip_2017) %>% mutate(Month = month.name[Month]) %>% 
+  select(month = Month, year, precip = Total)
 
 ```
 
-
 Write a paragraph about these data; you are encouraged to use inline R. Be sure to note the number of observations in both resulting datasets, and give examples of key variables. For available data, what was the total precipitation in 2017? What was the median number of sports balls in a dumpster in 2016?
+**Answer**: The Trash wheel data set contains the information on the types and amount of garbage/waste collected in the dumpster filled from the Trash wheel from May-2014 to August-2017. 
+```{r message = FALSE}
+Trash_Wheel %>% group_by(month, year) %>% tally() %>% ungroup() %>% arrange(desc(n)) %>% top_n(10) %>% 
+  rename(number_dumpster = n) %>% kable()
+```
+
+The top ten months which have the highest number of dumpsters are almost during the hurricane season (except the month of December 2015). This information is in agreement with what was given in the assignment which states "the amount of trash the device receives is highly dependent on rainfall".
 
 
