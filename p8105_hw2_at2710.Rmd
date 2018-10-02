@@ -35,7 +35,7 @@ original_dat <-
 
 Write a short paragraph about this dataset – explain briefly what variables the dataset contains, describe your data cleaning steps so far, and give the dimension (rows x columns) of the resulting dataset. Are these data tidy?
 
-**Answer**:Once downloaded, the data set consists of `r ncol(original_dat)` variables and `r nrow(original_dat)` observations. These are information on all the entrace to all the subway stations in NYC so each station could have multiple rows of information depending on the number of entrance. We further included only the variables as suggested and the number of variables came down to `r ncol(subset_dat)`. At this point, we noticed rows with identical input of a combination of *line* and *station name* thus we de-duplicated based on those two variables and ended up with **`r nrow(dedup_subset_dat)`** unique stations in the NYC subway system. There are `r sum(dedup_subset_dat$ada)` stations (`r round(100* sum(dedup_subset_dat$ada)/nrow(dedup_subset_dat),2)` %) which are ADA compliant.
+**Answer**:Once downloaded, the data set consists of `r ncol(original_dat)` variables and `r nrow(original_dat)` observations. These are information on all the entrace to all the subway stations in NYC so each station could have multiple rows of information depending on the number of entrance. We further included only the variables as suggested and the number of variables came down to `r ncol(subset_dat)`. Still, the data isn't in the tidy format; the *route* variables could be formatted as having the name of each train as the column with an input as YES/NO in a row. Also, At this point, we noticed rows with identical input of a combination of *line* and *station name* thus we de-duplicated based on those two variables and ended up with **`r nrow(dedup_subset_dat)`** unique stations in the NYC subway system. There are `r sum(dedup_subset_dat$ada)` stations (`r round(100* sum(dedup_subset_dat$ada)/nrow(dedup_subset_dat),2)` %) which are ADA compliant.
 
 What proportion of station entrances / exits without vending allow entrance?
 
@@ -44,12 +44,14 @@ What proportion of station entrances / exits without vending allow entrance?
 Reformat data so that route number and route name are distinct variables. How many distinct stations serve the A train? How many are ADA compliant?
 
 ```{r}
-reformat_dedup_subset <- dedup_subset_dat %>% mutate_if(is.integer, as.character) %>%   mutate(trains = paste(route1, route2, route3, route4, route5, route6,
-  route7, route8, route9, route10,route11)) %>% mutate(trains = 
-  gsub('NA', '', trains)) %>% mutate(A_train = str_detect(trains, "A"))
+reformat_dedup_subset <-
+  dedup_subset_dat %>% gather(key = route, value = Line, route1:route11) %>%
+  filter(!is.na(Line)) %>% select(-route) %>%
+  mutate(true = TRUE, Line = as.factor(Line)) %>%
+  spread(key = c(Line), value = true) 
 ```
 
-**Answer**: There are `r sum(reformat_dedup_subset$A_train)` stations that the A train serves `r reformat_dedup_subset %>% filter(A_train == TRUE & ada == TRUE) %>% nrow()` of which are ADA compliant.
+**Answer**: There are `r sum(reformat_dedup_subset$A, na.rm = TRUE)` stations that the A train serves `r reformat_dedup_subset %>% filter(A == TRUE & ada == TRUE) %>% nrow()` of which are ADA compliant.
 
 # Problem 2
 ```{r problem_2}
@@ -96,13 +98,13 @@ Trash_Wheel %>% group_by(month) %>% tally() %>% ungroup() %>% arrange(desc(n)) %
   rename(number_dumpster = n) %>% kable()
 ```
 
-These months are between April and August which is in agreement with what was given in the assignment which states "the amount of trash the device receives is highly dependent on rainfall". However, when we look at the top five months with highest precipitation level during 2016-2017, 
+These months are between April and August (hurricane season) which is in agreement with what was given in the assignment which states "the amount of trash the device receives is highly dependent on rainfall". However, when we look at the top five months with highest precipitation level during 2016-2017, 
 ```{r table_top_ten_precip, message = FALSE}
 Precip_combine %>% group_by(month) %>% tally(precip) %>% ungroup() %>%  arrange(desc(n)) %>% top_n(5) %>%   rename(precip_level = n) %>% kable()
 ```
 
 we found that February and March have high precipitation level but those didn't translate into a larger amount of garbage. This implies that the level of precipitation doesn't solely explain the amount of garbage; there must be other explanatory variables which contribute to the outcome.
-The total precipitation in 2017 (up to month Auguest) is `r sum(Precip_2017$Total)`. and the median number of sports balls in a dumpster in 2016 is `r Trash_Wheel_new %>% filter(year == 2016) %>% summarise(sports_balls_median = median(sports_balls))`
+The total precipitation in 2017 (up to month August) is `r sum(Precip_2017$Total)`. and the median number of sports balls in a dumpster in 2016 is `r Trash_Wheel_new %>% filter(year == 2016) %>% summarise(sports_balls_median = median(sports_balls))`
 
 # Problem 3
 ```{r load_brfss, message = FALSE}
@@ -146,4 +148,4 @@ health_overall_wide_fmt %>% filter(county %in% c('NY - Queens County', 'NY - New
   ylab("Proportion 'Excellent' response")
 ```
 
-ps. It does seem like New YOrk county dwellers tend to rate their health higher than those who live in Queens!
+ps. It does seem like New York county dwellers tend to rate their health higher than those who live in Queens!
