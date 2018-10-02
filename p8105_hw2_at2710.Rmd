@@ -3,10 +3,10 @@ title: "Homework 2"
 author: "Anusorn Thanataveerat"
 date: '2018-09-25'
 output:
-  html_document:
-    toc: true
-    toc_float: true
-    code_folding: hide
+github_document:
+toc: true
+toc_float: true
+code_folding: hide
 ---
 
 # Problem 1
@@ -21,6 +21,12 @@ library(knitr)
 library(p8105.datasets)
 library(janitor)
 library(lubridate)
+
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
 ```
 ```{r problem_1, message = FALSE}
 original_dat <-
