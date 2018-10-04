@@ -64,24 +64,24 @@ reformat_dedup_subset <-
 ```{r problem_2}
 Trash_Wheel <-
   readxl::read_excel(
-  "./Data/HealthyHarborWaterWheelTotals2017-9-26.xlsx",
+  "./Data/HealthyHarborWaterWheelTotals2018-7-28.xlsx",
   sheet = 'Mr. Trash Wheel',
   range = cell_cols("A:N")
   ) %>% clean_names() %>% filter(!is.na(dumpster) & !is.na(date)) %>%
   mutate(sports_balls = as.integer(round(sports_balls, 0)),
   year = lubridate::year(date))
 
-Trash_Wheel_new <- Trash_Wheel %>% filter(year > 2015)
+Trash_Wheel_new <- Trash_Wheel %>% filter(year %in% c(2016, 2017))
   Precip_2017 <-
   readxl::read_excel(
-  "./Data/HealthyHarborWaterWheelTotals2017-9-26.xlsx",
+  "./Data/HealthyHarborWaterWheelTotals2018-7-28.xlsx",
   sheet = '2017 Precipitation',
   range = "A2:B14"
   ) %>% filter(!is.na(Total)) %>% mutate(year = 2017)
   
   Precip_2016 <-
   readxl::read_excel(
-  "./Data/HealthyHarborWaterWheelTotals2017-9-26.xlsx",
+  "./Data/HealthyHarborWaterWheelTotals2018-7-28.xlsx",
   sheet = '2016 Precipitation',
   range = "A2:B14"
   ) %>% mutate(year = 2016)
@@ -93,13 +93,13 @@ Trash_Wheel_new <- Trash_Wheel %>% filter(year > 2015)
 
 Write a paragraph about these data; you are encouraged to use inline R. Be sure to note the number of observations in both resulting datasets, and give examples of key variables. For available data, what was the total precipitation in 2017? What was the median number of sports balls in a dumpster in 2016?
 
-**Answer**: The Trash wheel data set contains the information on the types and amount of garbage/waste collected in each dumpster filled from the Trash wheel from May-2014 to August-2017. it consists of `r nrow(Trash_Wheel)` observations with `r ncol(Trash_Wheel)` variables. The precipitaton data consists of monthly precipitation level from 2016 to August 2017 (`r nrow(Precip_combine)` rows and `r ncol(Precip_combine)` variables) 
+**Answer**: The Trash wheel data set contains the information on the types and amount of garbage/waste collected in each dumpster filled from the Trash wheel from May-2014 to July-2018. it consists of `r nrow(Trash_Wheel)` observations with `r ncol(Trash_Wheel)` variables. The precipitaton data consists of monthly precipitation level from 2016 to December 2017 (`r nrow(Precip_combine)` rows and `r ncol(Precip_combine)` variables) 
 ```{r table_top_ten_dumpsters, message = FALSE}
 # Trash_Wheel %>% group_by(month, year) %>% tally() %>% ungroup() %>% arrange(desc(n)) %>% top_n(10) %>% 
 #   rename(number_dumpster = n) %>% kable()
 ```
 
-Since we only use precipitation data from 2016 to August/2017, we restricted the data in the Trash wheel to reflect the same timeframe. Now the new Trash wheel data consists of `r nrow(Trash_Wheel_new)` observations. If we look at the top five months which have the highest number of dumpsters,  
+Since we only use precipitation data from years 2016 and 2017, we restricted the data in the Trash wheel to reflect the same timeframe. Now the new Trash wheel data consists of `r nrow(Trash_Wheel_new)` observations. If we look at the top five months which have the highest number of dumpsters,  
 ```{r message = FALSE}
 Trash_Wheel %>% group_by(month) %>% tally() %>% ungroup() %>% arrange(desc(n)) %>% top_n(5) %>% 
   rename(number_dumpster = n) %>% kable()
@@ -110,7 +110,7 @@ These months are between April and August (hurricane season) which is in agreeme
 Precip_combine %>% group_by(month) %>% tally(precip) %>% ungroup() %>%  arrange(desc(n)) %>% top_n(5) %>%   rename(precip_level = n) %>% kable()
 ```
 
-we found that February and March have high precipitation level but those didn't translate into a larger amount of garbage. This implies that the level of precipitation doesn't solely explain the amount of garbage; there must be other explanatory variables which contribute to the outcome.
+we found that February and September have high precipitation level but those didn't translate into a larger amount of garbage. This implies that the level of precipitation doesn't solely explain the amount of garbage; there must be other explanatory variables which contribute to the outcome.
 The total precipitation in 2017 (up to month August) is `r sum(Precip_2017$Total)`. and the median number of sports balls in a dumpster in 2016 is `r Trash_Wheel_new %>% filter(year == 2016) %>% summarise(sports_balls_median = median(sports_balls))`
 
 # Problem 3
