@@ -111,7 +111,7 @@ Precip_combine %>% group_by(month) %>% tally(precip) %>% ungroup() %>%  arrange(
 ```
 
 we found that February and September have high precipitation level but those didn't translate into a larger amount of garbage. This implies that the level of precipitation doesn't solely explain the amount of garbage; there must be other explanatory variables which contribute to the outcome.
-The total precipitation in 2017 (up to month August) is `r sum(Precip_2017$Total)`. and the median number of sports balls in a dumpster in 2016 is `r Trash_Wheel_new %>% filter(year == 2016) %>% summarise(sports_balls_median = median(sports_balls))`
+The total precipitation in 2017 is `r sum(Precip_2017$Total)`. and the median number of sports balls in a dumpster in 2016 is `r Trash_Wheel_new %>% filter(year == 2016) %>% summarise(sports_balls_median = median(sports_balls))`
 
 # Problem 3
 ```{r load_brfss, message = FALSE}
